@@ -34,7 +34,7 @@ import java.util.Objects;
 public class DefaultSonar6Client implements SonarClient {
     private static final Log LOG = LogFactory.getLog(DefaultSonar6Client.class);
     private static final String URL_RESOURCES = "/api/components/search?qualifiers=TRK&ps=500";
-    private static final String URL_RESOURCES_AUTHENTICATED = "/api/projects/search?ps=500";
+//    private static final String URL_RESOURCES_AUTHENTICATED = "/api/projects/search?ps=500";
     private static final String URL_RESOURCE_DETAILS = "/api/measures/component?format=json&componentId=%s&metricKeys=%s&includealerts=true";
     private static final String URL_PROJECT_ANALYSES = "/api/project_analyses/search?project=%s";
     private static final String URL_QUALITY_PROFILES = "/api/qualityprofiles/search";
@@ -103,11 +103,13 @@ public class DefaultSonar6Client implements SonarClient {
         List<SonarProject> projects = new ArrayList<>();
         String url = "";
         // take authenticated route
-        if(Objects.nonNull(userInfo.getToken())){
-            url = instanceUrl +  URL_RESOURCES_AUTHENTICATED;
-        }else{
-            url = instanceUrl + URL_RESOURCES;
-        }
+        url = instanceUrl + URL_RESOURCES;
+//
+//        if(Objects.nonNull(userInfo.getToken())){
+//            url = instanceUrl +  URL_RESOURCES_AUTHENTICATED;
+//        }else{
+//            url = instanceUrl + URL_RESOURCES;
+//        }
 
         try {
             JSONArray jsonArray = getProjectsWithPaging(url);
