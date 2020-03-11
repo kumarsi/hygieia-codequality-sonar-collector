@@ -1,20 +1,7 @@
 package com.capitalone.dashboard.collector;
 
-import com.capitalone.dashboard.model.CodeQuality;
-import com.capitalone.dashboard.model.CollectorItem;
-import com.capitalone.dashboard.model.CollectorItemConfigHistory;
-import com.capitalone.dashboard.model.CollectorType;
-import com.capitalone.dashboard.model.ConfigHistOperationType;
-import com.capitalone.dashboard.model.Configuration;
-import com.capitalone.dashboard.model.SonarCollector;
-import com.capitalone.dashboard.model.SonarProject;
-import com.capitalone.dashboard.repository.BaseCollectorRepository;
-import com.capitalone.dashboard.repository.CodeQualityRepository;
-import com.capitalone.dashboard.repository.ComponentRepository;
-import com.capitalone.dashboard.repository.ConfigurationRepository;
-import com.capitalone.dashboard.repository.SonarCollectorRepository;
-import com.capitalone.dashboard.repository.SonarProfileRepostory;
-import com.capitalone.dashboard.repository.SonarProjectRepository;
+import com.capitalone.dashboard.model.*;
+import com.capitalone.dashboard.repository.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -29,24 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 @Component
-public class SonarCollectorTask extends CollectorTask<SonarCollector> {
+public class SonarSecurityCollectorTask extends CollectorTask<SonarSecurityCollector> {
 
-    private static final Log LOG = LogFactory.getLog(SonarCollectorTask.class);
+    private static final Log LOG = LogFactory.getLog(SonarSecurityCollectorTask.class);
 
-    private final SonarCollectorRepository sonarCollectorRepository;
+    private final SonarSecurityCollectorRepository sonarSecurityCollectorRepository;
     private final SonarProjectRepository sonarProjectRepository;
     private final CodeQualityRepository codeQualityRepository;
     private final SonarProfileRepostory sonarProfileRepostory;
@@ -56,17 +36,17 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     private final ConfigurationRepository configurationRepository;
 
     @Autowired
-    public SonarCollectorTask(TaskScheduler taskScheduler,
-                              SonarCollectorRepository sonarCollectorRepository,
-                              SonarProjectRepository sonarProjectRepository,
-                              CodeQualityRepository codeQualityRepository,
-                              SonarProfileRepostory sonarProfileRepostory,
-                              SonarSettings sonarSettings,
-                              SonarClientSelector sonarClientSelector,
-                              ConfigurationRepository configurationRepository,
-                              ComponentRepository dbComponentRepository) {
-        super(taskScheduler, "Sonar");
-        this.sonarCollectorRepository = sonarCollectorRepository;
+    public SonarSecurityCollectorTask(TaskScheduler taskScheduler,
+                                      SonarSecurityCollectorRepository sonarSecurityCollectorRepository,
+                                      SonarProjectRepository sonarProjectRepository,
+                                      CodeQualityRepository codeQualityRepository,
+                                      SonarProfileRepostory sonarProfileRepostory,
+                                      SonarSettings sonarSettings,
+                                      SonarClientSelector sonarClientSelector,
+                                      ConfigurationRepository configurationRepository,
+                                      ComponentRepository dbComponentRepository) {
+        super(taskScheduler, "SonarSecurity");
+        this.sonarSecurityCollectorRepository = sonarSecurityCollectorRepository;
         this.sonarProjectRepository = sonarProjectRepository;
         this.codeQualityRepository = codeQualityRepository;
         this.sonarProfileRepostory = sonarProfileRepostory;
@@ -77,9 +57,9 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     }
 
     @Override
-    public SonarCollector getCollector() {
+    public SonarSecurityCollector getCollector() {
 
-        Configuration config = configurationRepository.findByCollectorName("Sonar");
+        Configuration config = configurationRepository.findByCollectorName("SonarSecurity");
         // Only use Admin Page server configuration when available
         // otherwise use properties file server configuration
         if (config != null) {
@@ -96,12 +76,12 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
             }
         }
 
-        return SonarCollector.prototype(sonarSettings.getServers(),  sonarSettings.getNiceNames());
+        return SonarSecurityCollector.prototype(sonarSettings.getServers(),  sonarSettings.getNiceNames());
     }
 
     @Override
-    public BaseCollectorRepository<SonarCollector> getCollectorRepository() {
-        return sonarCollectorRepository;
+    public BaseCollectorRepository<SonarSecurityCollector> getCollectorRepository() {
+        return sonarSecurityCollectorRepository;
     }
 
     @Override
@@ -110,7 +90,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     }
 
     @Override
-    public void collect(SonarCollector collector) {
+    public void collect(SonarSecurityCollector collector) {
         long start = System.currentTimeMillis();
 
         Set<ObjectId> udId = new HashSet<>();
@@ -170,15 +150,15 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
 	/**
 	 * Clean up unused sonar collector items
 	 *
-	 * @param collector
-	 *            the {@link SonarCollector}
-	 */
-    private void clean(SonarCollector collector, List<SonarProject> existingProjects) {
+     * @param collector
+     *            the {@link SonarCollector}
+     */
+    private void clean(SonarSecurityCollector collector, List<SonarProject> existingProjects) {
         // extract unique collector item IDs from components
         // (in this context collector_items are sonar projects)
         Set<ObjectId> uniqueIDs = StreamSupport.stream(dbComponentRepository.findAll().spliterator(),false)
             .filter( comp -> comp.getCollectorItems() != null && !comp.getCollectorItems().isEmpty())
-            .map(comp -> comp.getCollectorItems().get(CollectorType.CodeQuality))
+            .map(comp -> comp.getCollectorItems().get(CollectorType.StaticSecurityScan))
             // keep nonNull List<CollectorItem>
             .filter(Objects::nonNull)
             // merge all lists (flatten) into a stream
@@ -204,7 +184,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     }
 
 
-    private void deleteUnwantedJobs(List<SonarProject> latestProjects, List<SonarProject> existingProjects, SonarCollector collector) {
+    private void deleteUnwantedJobs(List<SonarProject> latestProjects, List<SonarProject> existingProjects, SonarSecurityCollector collector) {
         List<SonarProject> deleteJobList = new ArrayList<>();
 
         // First delete collector items that are not supposed to be collected anymore because the servers have moved(?)
@@ -223,12 +203,12 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
 
                     List<com.capitalone.dashboard.model.Component> comps =
                             dbComponentRepository
-                        .findByCollectorTypeAndItemIdIn(CollectorType.CodeQuality, Collections.singletonList(job.getId()));
+                        .findByCollectorTypeAndItemIdIn(CollectorType.StaticSecurityScan, Collections.singletonList(job.getId()));
 
                     for (com.capitalone.dashboard.model.Component c: comps) {
-                        c.getCollectorItems().get(CollectorType.CodeQuality).removeIf(collectorItem -> collectorItem.getId().equals(job.getId()));
-                        if(CollectionUtils.isEmpty(c.getCollectorItems().get(CollectorType.CodeQuality))){
-                            c.getCollectorItems().remove(CollectorType.CodeQuality);
+                        c.getCollectorItems().get(CollectorType.StaticSecurityScan).removeIf(collectorItem -> collectorItem.getId().equals(job.getId()));
+                        if(CollectionUtils.isEmpty(c.getCollectorItems().get(CollectorType.StaticSecurityScan))){
+                            c.getCollectorItems().remove(CollectorType.StaticSecurityScan);
                         }
                     }
                     dbComponentRepository.save(comps);
@@ -251,7 +231,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
         int count = 0;
 
         for (SonarProject project : sonarProjects) {
-            CodeQuality codeQuality = sonarClient.currentCodeQuality(project);
+            CodeQuality codeQuality = sonarClient.currentSecurityCodeQuality(project);
             if (codeQuality != null && isNewQualityData(project, codeQuality)) {
                 project.setLastUpdated(System.currentTimeMillis());
                 sonarProjectRepository.save(project);
@@ -263,7 +243,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
         log("Updated", start, count);
     }
 
-    private void fetchQualityProfileConfigChanges(SonarCollector collector,String instanceUrl,SonarClient sonarClient) throws org.json.simple.parser.ParseException{
+    private void fetchQualityProfileConfigChanges(SonarSecurityCollector collector, String instanceUrl, SonarClient sonarClient) throws org.json.simple.parser.ParseException{
     	JSONArray qualityProfiles = sonarClient.getQualityProfiles(instanceUrl);
     	JSONArray sonarProfileConfigurationChanges = new JSONArray();
 
@@ -279,7 +259,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     	}
     }
 
-    private void addNewConfigurationChanges(SonarCollector collector,JSONArray sonarProfileConfigurationChanges){
+    private void addNewConfigurationChanges(SonarSecurityCollector collector, JSONArray sonarProfileConfigurationChanges){
     	ArrayList<CollectorItemConfigHistory> profileConfigChanges = new ArrayList<>();
 
     	for (Object configChange : sonarProfileConfigurationChanges) {
@@ -313,11 +293,11 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
     	return storedConfigs.isEmpty();
     }
 
-    private List<SonarProject> enabledProjects(SonarCollector collector, String instanceUrl) {
+    private List<SonarProject> enabledProjects(SonarSecurityCollector collector, String instanceUrl) {
         return sonarProjectRepository.findEnabledProjects(collector.getId(), instanceUrl);
     }
 
-    private void addNewProjects(List<SonarProject> projects, List<SonarProject> existingProjects, SonarCollector collector) {
+    private void addNewProjects(List<SonarProject> projects, List<SonarProject> existingProjects, SonarSecurityCollector collector) {
         long start = System.currentTimeMillis();
         int count = 0;
         List<SonarProject> newProjects = new ArrayList<>();
@@ -355,7 +335,7 @@ public class SonarCollectorTask extends CollectorTask<SonarCollector> {
         log("New projects", start, count);
     }
 
-    private String getNiceName(SonarProject project, SonarCollector sonarCollector){
+    private String getNiceName(SonarProject project, SonarSecurityCollector sonarCollector){
 
         if (org.springframework.util.CollectionUtils.isEmpty(sonarCollector.getSonarServers())) return "";
         List<String> servers = sonarCollector.getSonarServers();

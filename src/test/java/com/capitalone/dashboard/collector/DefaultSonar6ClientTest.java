@@ -43,7 +43,7 @@ public class DefaultSonar6ClientTest {
     private static final String URL_RESOURCE_DETAILS = "/api/measures/component?format=json&componentId=%s&metricKeys=%s&includealerts=true";
     private static final String URL_PROJECT_ANALYSES = "/api/project_analyses/search?project=%s";
     private static final String SONAR_URL = "http://sonar.com";
-    private static final String METRICS = "ncloc,violations,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
+    private static final String METRICS = "ncloc,violations,vulnerabilities,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
 
     @Before
     public void init() {

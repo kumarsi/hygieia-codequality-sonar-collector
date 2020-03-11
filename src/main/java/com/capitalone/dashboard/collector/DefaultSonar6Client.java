@@ -225,6 +225,59 @@ public class DefaultSonar6Client implements SonarClient {
         return null;
     }
 
+    @Override
+    public CodeQuality currentSecurityCodeQuality(SonarProject project) {
+        String url = String.format(
+                project.getInstanceUrl() + URL_RESOURCE_DETAILS, project.getProjectId(), "vulnerabilities,new_vulnerabilities");
+
+        try {
+            ResponseEntity<String> response = restClient.makeRestCallGet(url,setHeaders(userInfo) );
+            JSONParser jsonParser = new JSONParser();
+            JSONObject jsonObject = (JSONObject) jsonParser.parse(response.getBody());
+            String key = "component";
+
+            if (jsonObject != null) {
+                JSONObject prjData = (JSONObject) jsonObject.get(key);
+
+                CodeQuality codeQuality = new CodeQuality();
+                codeQuality.setType(CodeQualityType.SecurityAnalysis);
+                codeQuality.setName(str(prjData, NAME));
+                codeQuality.setUrl(new SonarDashboardUrl(project.getInstanceUrl(), str(prjData, KEY)).toString());
+
+                url = String.format(
+                        project.getInstanceUrl() + URL_PROJECT_ANALYSES, str(prjData, KEY));
+                key = "analyses";
+                JSONArray jsonArray = parseAsArray(url, key);
+                getProjectAnalysis(codeQuality, jsonArray);
+                for (Object metricObj : (JSONArray) prjData.get(MSR)) {
+                    JSONObject metricJson = (JSONObject) metricObj;
+
+                    CodeQualityMetric metric = new CodeQualityMetric(str(metricJson, METRIC));
+                    metric.setValue(str(metricJson, VALUE));
+                    if (metric.getName().equals("sqale_index")) {
+                        metric.setFormattedValue(format(str(metricJson, VALUE)));
+                    } else if (strSafe(metricJson, VALUE).indexOf(".") > 0) {
+                        metric.setFormattedValue(str(metricJson, VALUE) + "%" );
+                    } else if (strSafe(metricJson, VALUE).matches("\\d+")) {
+                        metric.setFormattedValue(String.format("%,d", integer(metricJson, VALUE)));
+                    } else {
+                        metric.setFormattedValue(str(metricJson, VALUE));
+                    }
+                    codeQuality.getMetrics().add(metric);
+                }
+
+                return codeQuality;
+            }
+
+        } catch (ParseException e) {
+            LOG.error("Could not parse response from: " + url, e);
+        } catch (RestClientException rce) {
+            LOG.error("Rest Client Exception: " + url + ":" + rce.getMessage());
+        }
+
+        return null;
+    }
+
     private void getProjectAnalysis(CodeQuality codeQuality, JSONArray jsonArray) {
         if(jsonArray!=null && !jsonArray.isEmpty()) {
             JSONObject prjLatestData = (JSONObject) jsonArray.get(0);
@@ -261,7 +314,7 @@ public class DefaultSonar6Client implements SonarClient {
     		throw rce;
     	}
     }
-    
+
     public JSONArray getQualityProfiles(String instanceUrl) throws ParseException {
     	String url = instanceUrl + URL_QUALITY_PROFILES;
     	try {
@@ -275,7 +328,7 @@ public class DefaultSonar6Client implements SonarClient {
     		throw rce;
     	}
     }
-    
+
     public JSONArray getQualityProfileConfigurationChanges(String instanceUrl,String qualityProfile) throws ParseException{
     	String url = instanceUrl + URL_QUALITY_PROFILE_CHANGES + qualityProfile;
     	try {

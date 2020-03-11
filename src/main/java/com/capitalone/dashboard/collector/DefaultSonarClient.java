@@ -114,6 +114,10 @@ public class DefaultSonarClient implements SonarClient {
         return projects;
     }
 
+    @Override
+    public CodeQuality currentSecurityCodeQuality(SonarProject project) {
+        return null;
+    }
 
     @Override
     public CodeQuality currentCodeQuality(SonarProject project) {
@@ -155,7 +159,7 @@ public class DefaultSonarClient implements SonarClient {
 
         return null;
     }
-    
+
     public JSONArray getQualityProfiles(String instanceUrl) throws ParseException {
     	String url = instanceUrl + URL_QUALITY_PROFILES;
     	try {
@@ -169,7 +173,7 @@ public class DefaultSonarClient implements SonarClient {
     		throw rce;
     	}
     }
-    
+
     public List<String> retrieveProfileAndProjectAssociation(String instanceUrl,String qualityProfile) throws ParseException{
     	List<String> projects = new ArrayList<>();
     	String url = instanceUrl + URL_QUALITY_PROFILE_PROJECT_DETAILS + qualityProfile;
@@ -192,7 +196,7 @@ public class DefaultSonarClient implements SonarClient {
     		throw rce;
     	}
     }
-    
+
    public JSONArray getQualityProfileConfigurationChanges(String instanceUrl,String qualityProfile) throws ParseException{
 	   String url = instanceUrl + URL_QUALITY_PROFILE_CHANGES + qualityProfile;
 	   try {
