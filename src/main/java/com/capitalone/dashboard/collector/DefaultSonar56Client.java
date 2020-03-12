@@ -1,6 +1,7 @@
 package com.capitalone.dashboard.collector;
 
 import com.capitalone.dashboard.client.RestClient;
+import com.capitalone.dashboard.model.CodeQuality;
 import com.capitalone.dashboard.model.SonarProject;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -48,4 +49,10 @@ public class DefaultSonar56Client extends DefaultSonarClient {
 
         return projects;
     }
+
+    @Override
+    public CodeQuality currentSecurityCodeQuality(SonarProject project) {
+        return null;
+    }
+
 }

@@ -18,10 +18,11 @@ public interface SonarClient {
      */
     void setServerCredentials(String username, String password, String token);
     List<SonarProject> getProjects(String instanceUrl);
-    CodeQuality currentCodeQuality(SonarProject project);
+    CodeQuality currentStaticCodeQuality(SonarProject project);
+    CodeQuality currentSecurityCodeQuality(SonarProject project);
     JSONArray getQualityProfiles(String instanceUrl) throws ParseException;
     List<String> retrieveProfileAndProjectAssociation(String instanceUrl,String qualityProfile) throws ParseException;
-    JSONArray getQualityProfileConfigurationChanges(String instanceUrl,String qualityProfile) throws ParseException; 
+    JSONArray getQualityProfileConfigurationChanges(String instanceUrl,String qualityProfile) throws ParseException;
 
 
 }

@@ -1,0 +1,30 @@
+{
+  "component": {
+    "id": "AVu3b-MAphY78UZXuYHp",
+    "key": "com.capitalone.test:TestProject",
+    "name": "com.capitalone.test:TestProject",
+    "description": "Spring Boot Starter Parent",
+    "qualifier": "TRK",
+    "measures": [
+      {
+        "metric": "new_vulnerabilities",
+        "periods": [
+          {
+            "index": 1,
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "metric": "vulnerabilities",
+        "value": "2",
+        "periods": [
+          {
+            "index": 1,
+            "value": "0"
+          }
+        ]
+      }
+    ]
+  }
+}

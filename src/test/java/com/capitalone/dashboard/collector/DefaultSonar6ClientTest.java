@@ -20,7 +20,6 @@ import org.springframework.web.client.RestOperations;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
@@ -43,7 +42,8 @@ public class DefaultSonar6ClientTest {
     private static final String URL_RESOURCE_DETAILS = "/api/measures/component?format=json&componentId=%s&metricKeys=%s&includealerts=true";
     private static final String URL_PROJECT_ANALYSES = "/api/project_analyses/search?project=%s";
     private static final String SONAR_URL = "http://sonar.com";
-    private static final String METRICS = "ncloc,violations,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
+    private static final String METRICS = "ncloc,violations,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
+    private static final String SECURITY_METRICS = "vulnerabilities,new_vulnerabilities";
 
     @Before
     public void init() {
@@ -95,13 +95,28 @@ public class DefaultSonar6ClientTest {
         String analysesUrl = String.format(SONAR_URL + URL_PROJECT_ANALYSES,project.getProjectName());
         doReturn(new ResponseEntity<>(measureJson, HttpStatus.OK)).when(rest).exchange(eq(measureUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
         doReturn(new ResponseEntity<>(analysesJson, HttpStatus.OK)).when(rest).exchange(eq(analysesUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
-        CodeQuality quality = defaultSonar6Client.currentCodeQuality(getProject());
+        CodeQuality quality = defaultSonar6Client.currentStaticCodeQuality(getProject());
         assertThat(quality.getMetrics().size(), is(15));
         assertThat(quality.getType(), is (CodeQualityType.StaticAnalysis));
         assertThat(quality.getName(), is ("com.capitalone.test:TestProject"));
         assertThat(quality.getVersion(), is ("2.0.0"));
     }
 
+    @Test
+    public void currentSecurityCodeQuality() throws Exception {
+        String measureJson = getJson("sonar6Securitymeasures.json");
+        String analysesJson = getJson("sonar6analyses.json");
+        SonarProject project = getProject();
+        String measureUrl = String.format(SONAR_URL + URL_RESOURCE_DETAILS,project.getProjectId(),SECURITY_METRICS);
+        String analysesUrl = String.format(SONAR_URL + URL_PROJECT_ANALYSES,project.getProjectName());
+        doReturn(new ResponseEntity<>(measureJson, HttpStatus.OK)).when(rest).exchange(eq(measureUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
+        doReturn(new ResponseEntity<>(analysesJson, HttpStatus.OK)).when(rest).exchange(eq(analysesUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
+        CodeQuality quality = defaultSonar6Client.currentSecurityCodeQuality(getProject());
+        assertThat(quality.getMetrics().size(), is(1));
+        assertThat(quality.getType(), is (CodeQualityType.SecurityAnalysis));
+        assertThat(quality.getName(), is ("com.capitalone.test:TestProject"));
+        assertThat(quality.getVersion(), is ("2.0.0"));
+    }
 
     @Test
     public void currentCodeQualityForNullProjectData() throws Exception {
@@ -112,7 +127,7 @@ public class DefaultSonar6ClientTest {
         String analysesUrl = String.format(SONAR_URL + URL_PROJECT_ANALYSES,project.getProjectName());
         doReturn(new ResponseEntity<>(measureJson, HttpStatus.OK)).when(rest).exchange(eq(measureUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
         doReturn(new ResponseEntity<>(analysesJson, HttpStatus.OK)).when(rest).exchange(eq(analysesUrl), eq(HttpMethod.GET), Matchers.any(HttpEntity.class), eq(String.class));
-        CodeQuality quality = defaultSonar6Client.currentCodeQuality(getProject());
+        CodeQuality quality = defaultSonar6Client.currentStaticCodeQuality(getProject());
         assertThat(quality.getMetrics().size(), is(15));
         assertThat(quality.getType(), is (CodeQualityType.StaticAnalysis));
         assertThat(quality.getName(), is ("com.capitalone.test:TestProject"));

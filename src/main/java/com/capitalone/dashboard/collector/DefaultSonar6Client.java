@@ -40,8 +40,10 @@ public class DefaultSonar6Client implements SonarClient {
     private static final String URL_QUALITY_PROFILES = "/api/qualityprofiles/search";
     private static final String URL_QUALITY_PROFILE_PROJECT_DETAILS = "/api/qualityprofiles/projects?key=";
     private static final String URL_QUALITY_PROFILE_CHANGES = "/api/qualityprofiles/changelog?profileKey=";
-    private static final String DEFAULT_METRICS = "ncloc,violations,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
-    private final String metrics;
+    private static final String DEFAULT_STATIC_METRICS = "ncloc,violations,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
+    private static final String DEFAULT_SECURITY_METRICS = "vulnerabilities,new_vulnerabilities";
+    private final String staticMetrics;
+    private final String securityMetrics;
 
     private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     private static final String ID = "id";
@@ -64,15 +66,22 @@ public class DefaultSonar6Client implements SonarClient {
     private static final int HOURS_IN_DAY = 8;
     private static final int PAGE_SIZE=500;
 
+
     @Autowired
     public DefaultSonar6Client(RestClient restClient, SonarSettings settings) {
         this.restClient = restClient;
 
         // override default sonar metrics to fetch via properties file settings
-        if (!StringUtils.isEmpty(settings.getMetrics63andAbove())) {
-            metrics = settings.getMetrics63andAbove();
+        if (!StringUtils.isEmpty(settings.getStaticMetrics63andAbove())) {
+            staticMetrics = settings.getStaticMetrics63andAbove();
         } else {
-            metrics = DEFAULT_METRICS;
+            staticMetrics = DEFAULT_STATIC_METRICS;
+        }
+        // override default sonar metrics to fetch via properties file settings
+        if (!StringUtils.isEmpty(settings.getSecurityMetrics63andAbove())) {
+            securityMetrics = settings.getSecurityMetrics63andAbove();
+        } else {
+            securityMetrics = DEFAULT_SECURITY_METRICS;
         }
     }
 
@@ -173,9 +182,18 @@ public class DefaultSonar6Client implements SonarClient {
     }
 
     @Override
-    public CodeQuality currentCodeQuality(SonarProject project) {
+    public CodeQuality currentStaticCodeQuality(SonarProject project) {
+        return getCurrentStaticOrSecurityCodeQuality(project, staticMetrics, CodeQualityType.StaticAnalysis);
+    }
+
+    @Override
+    public CodeQuality currentSecurityCodeQuality(SonarProject project) {
+        return getCurrentStaticOrSecurityCodeQuality(project, securityMetrics, CodeQualityType.SecurityAnalysis);
+    }
+
+    private CodeQuality getCurrentStaticOrSecurityCodeQuality(SonarProject project, String sonarMetrics, CodeQualityType codeQualityType){
         String url = String.format(
-                project.getInstanceUrl() + URL_RESOURCE_DETAILS, project.getProjectId(), metrics);
+                project.getInstanceUrl() + URL_RESOURCE_DETAILS, project.getProjectId(), sonarMetrics);
 
         try {
             ResponseEntity<String> response = restClient.makeRestCallGet(url,setHeaders(userInfo) );
@@ -187,7 +205,7 @@ public class DefaultSonar6Client implements SonarClient {
                 JSONObject prjData = (JSONObject) jsonObject.get(key);
 
                 CodeQuality codeQuality = new CodeQuality();
-                codeQuality.setType(CodeQualityType.StaticAnalysis);
+                codeQuality.setType(codeQualityType);
                 codeQuality.setName(str(prjData, NAME));
                 codeQuality.setUrl(new SonarDashboardUrl(project.getInstanceUrl(), str(prjData, KEY)).toString());
 
@@ -200,15 +218,17 @@ public class DefaultSonar6Client implements SonarClient {
                     JSONObject metricJson = (JSONObject) metricObj;
 
                     CodeQualityMetric metric = new CodeQualityMetric(str(metricJson, METRIC));
-                    metric.setValue(str(metricJson, VALUE));
+                    String metricValue = str(metricJson, VALUE);
+                    if (metricValue == null) continue;
+                    metric.setValue(metricValue);
                     if (metric.getName().equals("sqale_index")) {
-                        metric.setFormattedValue(format(str(metricJson, VALUE)));
+                        metric.setFormattedValue(format(metricValue));
                     } else if (strSafe(metricJson, VALUE).indexOf(".") > 0) {
-                        metric.setFormattedValue(str(metricJson, VALUE) + "%" );
+                        metric.setFormattedValue(metricValue + "%" );
                     } else if (strSafe(metricJson, VALUE).matches("\\d+")) {
                         metric.setFormattedValue(String.format("%,d", integer(metricJson, VALUE)));
                     } else {
-                        metric.setFormattedValue(str(metricJson, VALUE));
+                        metric.setFormattedValue(metricValue);
                     }
                     codeQuality.getMetrics().add(metric);
                 }
@@ -261,7 +281,7 @@ public class DefaultSonar6Client implements SonarClient {
     		throw rce;
     	}
     }
-    
+
     public JSONArray getQualityProfiles(String instanceUrl) throws ParseException {
     	String url = instanceUrl + URL_QUALITY_PROFILES;
     	try {
@@ -275,7 +295,7 @@ public class DefaultSonar6Client implements SonarClient {
     		throw rce;
     	}
     }
-    
+
     public JSONArray getQualityProfileConfigurationChanges(String instanceUrl,String qualityProfile) throws ParseException{
     	String url = instanceUrl + URL_QUALITY_PROFILE_CHANGES + qualityProfile;
     	try {
