@@ -22,7 +22,8 @@ sonar.passwords[0]=$SONAR_PASSWORD
 sonar.tokens[0]=$SONAR_TOKEN
 
 #Sonar Metrics
-sonar.metrics[0]=${SONAR_METRICS:-ncloc,line_coverage,violations,critical_violations,major_violations,blocker_violations,sqale_index,test_success_density,test_failures,test_errors,tests}
+sonar.staticMetrics63andAbove=${SONAR_STATIC_METRICS:-ncloc,violations,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details}
+sonar.securityMetrics63andAbove=${SONAR_SECURITY_METRICS:vulnerabilities,new_vulnerabilities}
 
 #Sonar Version - see above for semantics between version/metrics
 sonar.versions[0]=${SONAR_VERSION}

@@ -40,7 +40,7 @@ public class DefaultSonar6Client implements SonarClient {
     private static final String URL_QUALITY_PROFILES = "/api/qualityprofiles/search";
     private static final String URL_QUALITY_PROFILE_PROJECT_DETAILS = "/api/qualityprofiles/projects?key=";
     private static final String URL_QUALITY_PROFILE_CHANGES = "/api/qualityprofiles/changelog?profileKey=";
-    private static final String DEFAULT_STATIC_METRICS = "ncloc,violations,new_vulnerabilities,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
+    private static final String DEFAULT_STATIC_METRICS = "ncloc,violations,critical_violations,major_violations,blocker_violations,tests,test_success_density,test_errors,test_failures,coverage,line_coverage,sqale_index,alert_status,quality_gate_details";
     private static final String DEFAULT_SECURITY_METRICS = "vulnerabilities,new_vulnerabilities";
     private final String staticMetrics;
     private final String securityMetrics;
