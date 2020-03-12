@@ -4,7 +4,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
-public class SonarSecurityCollector extends Collector {
+public class SonarSecurityAnalysisCollector extends Collector {
     private List<String> sonarServers = new ArrayList<>();
     private List<String> sonarMetrics = new ArrayList<>();
     private List<String> niceNames = new ArrayList<>();
@@ -27,8 +27,8 @@ public class SonarSecurityCollector extends Collector {
         this.niceNames = niceNames;
     }
 
-    public static SonarSecurityCollector prototype(List<String> servers, List<String> niceNames) {
-        SonarSecurityCollector protoType = new SonarSecurityCollector();
+    public static SonarSecurityAnalysisCollector prototype(List<String> servers, List<String> niceNames) {
+        SonarSecurityAnalysisCollector protoType = new SonarSecurityAnalysisCollector();
         protoType.setName("SonarSecurity");
         protoType.setCollectorType(CollectorType.StaticSecurityScan);
         protoType.setOnline(true);

@@ -120,7 +120,7 @@ public class DefaultSonarClient implements SonarClient {
     }
 
     @Override
-    public CodeQuality currentCodeQuality(SonarProject project) {
+    public CodeQuality currentStaticCodeQuality(SonarProject project) {
         String url = String.format(
                 project.getInstanceUrl() + URL_RESOURCE_DETAILS, project.getProjectId(), metrics);
 

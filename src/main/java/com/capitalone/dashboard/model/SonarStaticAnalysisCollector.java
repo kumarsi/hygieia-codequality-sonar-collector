@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SonarCollector extends Collector {
+public class SonarStaticAnalysisCollector extends Collector {
     private List<String> sonarServers = new ArrayList<>();
     private List<String> sonarMetrics = new ArrayList<>();
     private List<String> niceNames = new ArrayList<>();
@@ -31,8 +31,8 @@ public class SonarCollector extends Collector {
         this.niceNames = niceNames;
     }
 
-    public static SonarCollector prototype(List<String> servers, List<String> niceNames) {
-        SonarCollector protoType = new SonarCollector();
+    public static SonarStaticAnalysisCollector prototype(List<String> servers, List<String> niceNames) {
+        SonarStaticAnalysisCollector protoType = new SonarStaticAnalysisCollector();
         protoType.setName("Sonar");
         protoType.setCollectorType(CollectorType.CodeQuality);
         protoType.setOnline(true);

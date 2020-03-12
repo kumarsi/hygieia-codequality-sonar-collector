@@ -182,7 +182,7 @@ public class DefaultSonar6Client implements SonarClient {
     }
 
     @Override
-    public CodeQuality currentCodeQuality(SonarProject project) {
+    public CodeQuality currentStaticCodeQuality(SonarProject project) {
         return getCurrentStaticOrSecurityCodeQuality(project, staticMetrics, CodeQualityType.StaticAnalysis);
     }
 

@@ -13,33 +13,33 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Component
-public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
-    private static final Log LOG = LogFactory.getLog(SonarSecurityCollectorTask.class);
-    private static final String collectorName = "SonarSecurity";
-    private final SonarSecurityCollectorRepository sonarCollectorRepository;
+public class SonarStaticAnalysisCollectorTask extends SonarCollectorTask {
+    private static final Log LOG = LogFactory.getLog(SonarStaticAnalysisCollectorTask.class);
+    private static final String collectorName = "Sonar";
+    private final SonarStaticAnalysisCollectorRepository sonarStaticAnalysisCollectorRepository;
     private final SonarSettings sonarSettings;
     private final SonarClientSelector sonarClientSelector;
     private final ConfigurationRepository configurationRepository;
 
     @Autowired
-    public SonarSecurityCollectorTask(TaskScheduler taskScheduler,
-                              SonarSecurityCollectorRepository sonarCollectorRepository,
-                              SonarProjectRepository sonarProjectRepository,
-                              CodeQualityRepository codeQualityRepository,
-                              SonarProfileRepostory sonarProfileRepostory,
-                              SonarSettings sonarSettings,
-                              SonarClientSelector sonarClientSelector,
-                              ConfigurationRepository configurationRepository,
-                              ComponentRepository dbComponentRepository) {
+    public SonarStaticAnalysisCollectorTask(TaskScheduler taskScheduler,
+                                            SonarStaticAnalysisCollectorRepository sonarStaticAnalysisCollectorRepository,
+                                            SonarProjectRepository sonarProjectRepository,
+                                            CodeQualityRepository codeQualityRepository,
+                                            SonarProfileRepostory sonarProfileRepostory,
+                                            SonarSettings sonarSettings,
+                                            SonarClientSelector sonarClientSelector,
+                                            ConfigurationRepository configurationRepository,
+                                            ComponentRepository dbComponentRepository) {
         super(taskScheduler, collectorName, sonarProjectRepository, codeQualityRepository, sonarProfileRepostory, dbComponentRepository);
-        this.sonarCollectorRepository = sonarCollectorRepository;
+        this.sonarStaticAnalysisCollectorRepository = sonarStaticAnalysisCollectorRepository;
         this.sonarSettings = sonarSettings;
         this.sonarClientSelector = sonarClientSelector;
         this.configurationRepository = configurationRepository;
     }
 
     @Override
-    public SonarSecurityCollector getCollector() {
+    public SonarStaticAnalysisCollector getCollector() {
 
         Configuration config = configurationRepository.findByCollectorName(collectorName);
         // Only use Admin Page server configuration when available
@@ -58,8 +58,9 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
             }
         }
 
-        return SonarSecurityCollector.prototype(sonarSettings.getServers(),  sonarSettings.getNiceNames());
+        return SonarStaticAnalysisCollector.prototype(sonarSettings.getServers(),  sonarSettings.getNiceNames());
     }
+
 
     @Override
     public String getCron() {
@@ -67,26 +68,26 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
     }
 
     @Override
-    public SonarSecurityCollectorRepository getCollectorRepository() {
-        return sonarCollectorRepository;
+    public SonarStaticAnalysisCollectorRepository getCollectorRepository() {
+        return sonarStaticAnalysisCollectorRepository;
     }
 
     @Override
     public void collect(Collector collector) {
-        SonarSecurityCollector sonarSecurityCollector = (SonarSecurityCollector) collector;
+        SonarStaticAnalysisCollector sonarStaticAnalysisCollector = (SonarStaticAnalysisCollector) collector;
         long start = System.currentTimeMillis();
 
         Set<ObjectId> udId = new HashSet<>();
         udId.add(collector.getId());
         List<SonarProject> existingProjects = sonarProjectRepository.findByCollectorIdIn(udId);
         List<SonarProject> latestProjects = new ArrayList<>();
-        clean(sonarSecurityCollector, existingProjects, CollectorType.StaticSecurityScan);
+        clean(sonarStaticAnalysisCollector, existingProjects, CollectorType.CodeQuality);
 
-        if (!CollectionUtils.isEmpty(sonarSecurityCollector.getSonarServers())) {
+        if (!CollectionUtils.isEmpty(sonarStaticAnalysisCollector.getSonarServers())) {
 
-            for (int i = 0; i < sonarSecurityCollector.getSonarServers().size(); i++) {
+            for (int i = 0; i < sonarStaticAnalysisCollector.getSonarServers().size(); i++) {
 
-                String instanceUrl = sonarSecurityCollector.getSonarServers().get(i);
+                String instanceUrl = sonarStaticAnalysisCollector.getSonarServers().get(i);
                 logBanner(instanceUrl);
 
                 Double version = sonarClientSelector.getSonarVersion(instanceUrl);
@@ -109,10 +110,10 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
 
                 // Changelog apis do not exist for sonarqube versions under version 5.0
                 if (version >= 5.0) {
-                    try {
-                        fetchQualityProfileConfigChanges(collector,instanceUrl,sonarClient);
-                    } catch (Exception e) {
-                        LOG.error(e);
+                  try {
+                     fetchQualityProfileConfigChanges(collector,instanceUrl,sonarClient);
+                   } catch (Exception e) {
+                     LOG.error(e);
                     }
                 }
 
@@ -128,7 +129,7 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
         // First delete collector items that are not supposed to be collected anymore because the servers have moved(?)
         for (SonarProject job : existingProjects) {
             if (job.isPushed()) continue; // do not delete jobs that are being pushed via API
-            if (!((SonarSecurityCollector) collector).getSonarServers().contains(job.getInstanceUrl()) ||
+            if (!((SonarStaticAnalysisCollector) collector).getSonarServers().contains(job.getInstanceUrl()) ||
                     (!job.getCollectorId().equals(collector.getId())) ||
                     (!latestProjects.contains(job))) {
                 if(!job.isEnabled()) {
@@ -156,7 +157,7 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
         int count = 0;
 
         for (SonarProject project : sonarProjects) {
-            CodeQuality codeQuality = sonarClient.currentSecurityCodeQuality(project);
+            CodeQuality codeQuality = sonarClient.currentStaticCodeQuality(project);
             if (codeQuality != null && isNewQualityData(project, codeQuality)) {
                 project.setLastUpdated(System.currentTimeMillis());
                 sonarProjectRepository.save(project);
@@ -169,10 +170,10 @@ public class SonarSecurityCollectorTask extends SuperSonarCollectorTask {
     }
 
     protected String getNiceName(SonarProject project, Collector collector){
-        SonarSecurityCollector sonarCollector = (SonarSecurityCollector) collector;
-        if (org.springframework.util.CollectionUtils.isEmpty(sonarCollector.getSonarServers())) return "";
-        List<String> servers = sonarCollector.getSonarServers();
-        List<String> niceNames = sonarCollector.getNiceNames();
+        SonarStaticAnalysisCollector sonarStaticAnalysisCollector = (SonarStaticAnalysisCollector) collector;
+        if (org.springframework.util.CollectionUtils.isEmpty(sonarStaticAnalysisCollector.getSonarServers())) return "";
+        List<String> servers = sonarStaticAnalysisCollector.getSonarServers();
+        List<String> niceNames = sonarStaticAnalysisCollector.getNiceNames();
         if (org.springframework.util.CollectionUtils.isEmpty(niceNames)) return "";
         for (int i = 0; i < servers.size(); i++) {
             if (servers.get(i).equalsIgnoreCase(project.getInstanceUrl()) && (niceNames.size() > i)) {
